@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "culltag",
+  "version": "${version}",
+  "name": "CullTag",
+  "description": "Server-side nametag culling. Hides player nametags through walls using server-side raycasting. Vanilla shows nametags through blocks by default; this fixes that.",
+  "authors": [
+    "Divesh Gupta"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "environment": "server",
+  "entrypoints": {
+    "server": [
+      "com.culltag.CullTagMod"
+    ]
+  },
+  "mixins": [
+    "culltag.mixins.json"
+  ],
+  "accessWidener": "culltag.accesswidener",
+  "depends": {
+    "fabricloader": ">=0.19.2",
+    "minecraft": "~26.1",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

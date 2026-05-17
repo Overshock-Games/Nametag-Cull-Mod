@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.culltag.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [],
+  "server": [
+    "ServerCommonPacketListenerImplMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
