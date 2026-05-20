@@ -11,9 +11,10 @@ import java.util.Properties;
 
 public final class CullTagConfig {
 
-    public static volatile boolean enabled         = true;
+    public static volatile boolean enabled            = true;
     public static volatile int maxDistance        = 32;
     public static volatile int checkIntervalTicks = 10;
+    public static volatile boolean crouchHidesNametag = true;
 
     private static final Path CONFIG_PATH = Path.of("config", "culltag.properties");
 
@@ -30,13 +31,14 @@ public final class CullTagConfig {
             }
         }
 
-        enabled            = parseBoolean(props, "enabled",             true,       logger);
+        enabled            = parseBoolean(props, "enabled",              true,       logger);
         maxDistance        = parseInt(props,    "max_distance",         32, 1, 512, logger);
         checkIntervalTicks = parseInt(props,    "check_interval_ticks", 10, 1,  40, logger);
+        crouchHidesNametag = parseBoolean(props, "crouch_hides_nametag", true,       logger);
 
         save(logger);
-        logger.info("[CullTag] Config loaded: enabled={}, max_distance={}, check_interval_ticks={}",
-                enabled, maxDistance, checkIntervalTicks);
+        logger.info("[CullTag] Config loaded: enabled={}, max_distance={}, check_interval_ticks={}, crouch_hides_nametag={}",
+                enabled, maxDistance, checkIntervalTicks, crouchHidesNametag);
     }
 
     public static void reload(Logger logger) {
@@ -94,6 +96,10 @@ public final class CullTagConfig {
                 # Lower values are more accurate but use more CPU.
                 # 10 = ~2 checks per second, 4 = ~5 checks per second.
                 check_interval_ticks=%d
-                """.formatted(enabled, maxDistance, checkIntervalTicks);
+
+                # When true, a crouching player's nametag is hidden from everyone
+                # entirely, regardless of line of sight.
+                crouch_hides_nametag=%b
+                """.formatted(enabled, maxDistance, checkIntervalTicks, crouchHidesNametag);
     }
 }

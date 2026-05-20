@@ -94,6 +94,18 @@ public final class LineOfSightEngine {
                     continue;
                 }
 
+                // A crouching player's nametag is hidden from everyone entirely,
+                // independent of line of sight.
+                boolean aCrouchHidden = CullTagConfig.crouchHidesNametag && a.isCrouching();
+                boolean bCrouchHidden = CullTagConfig.crouchHidesNametag && b.isCrouching();
+
+                // Both crouching — neither nametag can be visible, skip the raycast.
+                if (aCrouchHidden && bCrouchHidden) {
+                    handleResult(a, b, false);
+                    handleResult(b, a, false);
+                    continue;
+                }
+
                 Vec3 eyeA = a.getEyePosition();
                 Vec3 eyeB = b.getEyePosition();
 
@@ -123,8 +135,9 @@ public final class LineOfSightEngine {
                     visible = false; // cached blocked, neither moved
                 }
 
-                handleResult(a, b, visible);
-                handleResult(b, a, visible);
+                // b crouching hides b from a; a crouching hides a from b.
+                handleResult(a, b, !bCrouchHidden && visible);
+                handleResult(b, a, !aCrouchHidden && visible);
             }
         }
 

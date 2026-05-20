@@ -52,7 +52,8 @@ public final class CullTagCommand {
         ctx.getSource().sendSuccess(() -> Component.literal(
                 "[CullTag] Config reloaded: enabled=" + CullTagConfig.enabled
                 + ", max_distance=" + CullTagConfig.maxDistance
-                + ", check_interval_ticks=" + CullTagConfig.checkIntervalTicks), true);
+                + ", check_interval_ticks=" + CullTagConfig.checkIntervalTicks
+                + ", crouch_hides_nametag=" + CullTagConfig.crouchHidesNametag), true);
         return 1;
     }
 
