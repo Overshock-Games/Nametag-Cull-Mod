@@ -36,9 +36,13 @@ public final class CullTagCommand {
     private static int disable(CommandContext<CommandSourceStack> ctx) {
         CullTagConfig.enabled = false;
         CullTagConfig.save(CullTagMod.LOGGER);
-        NametagManager.restoreAll(
-                ctx.getSource().getServer().getPlayerList().getPlayers());
-        ctx.getSource().sendSuccess(() -> Component.literal("[CullTag] Disabled — all nametags restored."), true);
+        var players = ctx.getSource().getServer().getPlayerList().getPlayers();
+        int restored = NametagManager.restoreAll(players);
+        int unhidden = CrouchHider.restoreAll(players);
+        LineOfSightEngine.clearCache();
+        ctx.getSource().sendSuccess(() -> Component.literal(
+                "[CullTag] Disabled — restored " + restored + " LOS override(s), "
+                + unhidden + " crouch override(s), LOS cache cleared."), true);
         return 1;
     }
 
@@ -46,8 +50,10 @@ public final class CullTagCommand {
         boolean wasEnabled = CullTagConfig.enabled;
         CullTagConfig.reload(CullTagMod.LOGGER);
         if (wasEnabled && !CullTagConfig.enabled) {
-            NametagManager.restoreAll(
-                    ctx.getSource().getServer().getPlayerList().getPlayers());
+            var players = ctx.getSource().getServer().getPlayerList().getPlayers();
+            NametagManager.restoreAll(players);
+            CrouchHider.restoreAll(players);
+            LineOfSightEngine.clearCache();
         }
         ctx.getSource().sendSuccess(() -> Component.literal(
                 "[CullTag] Config reloaded: enabled=" + CullTagConfig.enabled
@@ -59,11 +65,15 @@ public final class CullTagCommand {
 
     private static int stats(CommandContext<CommandSourceStack> ctx) {
         LineOfSightEngine.PerfStats s = LineOfSightEngine.getStats();
+        int hidden = NametagManager.countHidden(
+                ctx.getSource().getServer().getPlayerList().getPlayers());
         ctx.getSource().sendSuccess(() -> Component.literal(
                 "[CullTag] LOS sweeps: " + s.totalSweeps()
                 + " | raycasts: " + s.totalRaycasts()
                 + " | last sweep: " + String.format("%.3f ms", s.lastSweepMs())
-                + " | avg sweep: "  + String.format("%.3f ms", s.avgSweepMs())), false);
+                + " | avg sweep: "  + String.format("%.3f ms", s.avgSweepMs())
+                + " | LOS-hidden: " + hidden
+                + " | crouch-hidden: " + CrouchHider.countHidden()), false);
         return 1;
     }
 }

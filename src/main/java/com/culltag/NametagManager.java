@@ -30,20 +30,47 @@ public final class NametagManager {
 
     private NametagManager() {}
 
-    /** Restores all hidden nametags for every online player. Call when disabling the mod. */
-    public static void restoreAll(List<ServerPlayer> players) {
+    /** Force-restores nametag state for every (viewer, target) pair, regardless of
+     *  whether the server thinks the target was being hidden. This matters after a
+     *  hot-jar-swap: server-side {@code hiddenIds} is empty, but the client may still
+     *  have force-sneak flags lingering from the previous binary. Clearing only the
+     *  tracked set would miss those, so we blast every pair.
+     *
+     *  Returns the total number of restoration packets sent. */
+    public static int restoreAll(List<ServerPlayer> players) {
+        int totalSent = 0;
         for (ServerPlayer viewer : players) {
             NametagController ctrl = (NametagController) viewer.connection;
-            Set<Integer> hiddenIds = ctrl.culltag_getHiddenEntityIds();
-            if (hiddenIds.isEmpty()) continue;
-            List<Integer> toRestore = new ArrayList<>(hiddenIds);
-            hiddenIds.clear();
+            ctrl.culltag_getHiddenEntityIds().clear();
+            int sentForViewer = 0;
             for (ServerPlayer target : players) {
-                if (toRestore.contains(target.getId())) {
-                    ctrl.culltag_sendDirect(buildFlagsPacket(target, getRealFlags(target)));
-                }
+                if (target == viewer) continue;
+                // Force-clear the 0x02 (sneaking) bit. If the target is genuinely sneaking
+                // IRL, vanilla will reassert it on the next metadata tick — for a kill-switch
+                // we want guaranteed nametag restoration now even if no prior override existed.
+                byte restored = clearSneaking(getRealFlags(target));
+                ctrl.culltag_sendDirect(buildFlagsPacket(target, restored));
+                sentForViewer++;
+            }
+            if (sentForViewer > 0) {
+                CullTagMod.LOGGER.info("[CullTag] Restored {} nametag(s) for viewer {}",
+                        sentForViewer, viewer.getName().getString());
+                totalSent += sentForViewer;
             }
         }
+        CullTagMod.LOGGER.info("[CullTag] restoreAll complete: {} packet(s) across {} viewer(s)",
+                totalSent, players.size());
+        return totalSent;
+    }
+
+    /** Total entities currently being hidden across all viewers. For /culltag stats. */
+    public static int countHidden(List<ServerPlayer> players) {
+        int total = 0;
+        for (ServerPlayer viewer : players) {
+            NametagController ctrl = (NametagController) viewer.connection;
+            total += ctrl.culltag_getHiddenEntityIds().size();
+        }
+        return total;
     }
 
     public static void onVisibilityChanged(ServerPlayer viewer, ServerPlayer target, boolean nowVisible) {
@@ -65,6 +92,10 @@ public final class NametagManager {
 
     public static byte addSneaking(byte flags) {
         return (byte) (flags | 0x02);
+    }
+
+    public static byte clearSneaking(byte flags) {
+        return (byte) (flags & ~0x02);
     }
 
     public static ClientboundSetEntityDataPacket buildFlagsPacket(Entity entity, byte flagsValue) {

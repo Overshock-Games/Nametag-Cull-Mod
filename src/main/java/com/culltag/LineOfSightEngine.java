@@ -16,17 +16,12 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * Optimisations:
  *  - Symmetric LOS: one raycast per unordered pair, result shared both ways.
- *  - Position cache: skip the raycast if neither player moved more than 1 block
- *    since the last check (result cannot have changed).
  */
 public final class LineOfSightEngine {
 
     // viewer UUID → target UUID → can viewer currently see target?
     private static final Map<UUID, Map<UUID, Boolean>> cache = new ConcurrentHashMap<>();
     private static final Map<UUID, Map<UUID, Boolean>> prev  = new ConcurrentHashMap<>();
-
-    // Last eye-position used for each player's LOS checks (for movement detection)
-    private static final Map<UUID, Vec3> lastPos = new ConcurrentHashMap<>();
 
     private static int tickAccum = 0;
 
@@ -50,6 +45,14 @@ public final class LineOfSightEngine {
 
     private LineOfSightEngine() {}
 
+    /** Wipes all cached visibility state. Call after disabling so a re-enable
+     *  fires fresh visibility-change callbacks instead of being suppressed
+     *  by stale "same as last time" entries. */
+    public static void clearCache() {
+        cache.clear();
+        prev.clear();
+    }
+
     public static boolean canSee(UUID viewerUuid, UUID targetUuid) {
         Map<UUID, Boolean> row = cache.get(viewerUuid);
         if (row == null) return true;
@@ -69,7 +72,6 @@ public final class LineOfSightEngine {
         for (ServerPlayer p : players) live.add(p.getUUID());
         cache.keySet().retainAll(live);
         prev .keySet().retainAll(live);
-        lastPos.keySet().retainAll(live);
 
         double maxDistSq = (double) CullTagConfig.maxDistance * CullTagConfig.maxDistance;
 
@@ -94,50 +96,31 @@ public final class LineOfSightEngine {
                     continue;
                 }
 
-                // A crouching player's nametag is hidden from everyone entirely,
-                // independent of line of sight.
+                // Crouch-hide uses a per-viewer team override (NEVER nametag visibility)
+                // because the force-sneak mechanism doesn't suppress nametags at close range
+                // with clear LOS — vanilla still renders sneaking nametags then.
                 boolean aCrouchHidden = CullTagConfig.crouchHidesNametag && a.isCrouching();
                 boolean bCrouchHidden = CullTagConfig.crouchHidesNametag && b.isCrouching();
+                CrouchHider.setHidden(a, b, bCrouchHidden);
+                CrouchHider.setHidden(b, a, aCrouchHidden);
 
-                // Both crouching — neither nametag can be visible, skip the raycast.
+                // Both crouching — both nametags are team-hidden, no point raycasting.
                 if (aCrouchHidden && bCrouchHidden) {
-                    handleResult(a, b, false);
-                    handleResult(b, a, false);
                     continue;
                 }
 
                 Vec3 eyeA = a.getEyePosition();
                 Vec3 eyeB = b.getEyePosition();
 
-                // Check the current cached result for this pair.
-                Map<UUID, Boolean> rowA = cache.computeIfAbsent(a.getUUID(), k -> new ConcurrentHashMap<>());
-                Boolean cachedVisible = rowA.get(b.getUUID());
+                // Always recast. The previous "skip if cached blocked and neither moved"
+                // optimisation was unsound: a third party (other player, mob, opening door,
+                // broken block) can restore LOS without either endpoint moving, leaving the
+                // pair stuck as blocked forever. Sweeps are sub-millisecond — correctness wins.
+                raycasts++;
+                boolean visible = castRay(a, b, eyeA, eyeB);
 
-                // If currently visible, always recast — visible→blocked transitions
-                // happen the instant someone steps behind cover (even <1 block of movement).
-                // If currently blocked, skip the ray when neither player moved significantly;
-                // they'd have to move to regain LOS anyway.
-                Vec3 oldA = lastPos.get(a.getUUID());
-                Vec3 oldB = lastPos.get(b.getUUID());
-                boolean needsCheck = cachedVisible == null
-                        || cachedVisible
-                        || oldA == null || oldB == null
-                        || eyeA.distanceToSqr(oldA) > 1.0
-                        || eyeB.distanceToSqr(oldB) > 1.0;
-
-                boolean visible;
-                if (needsCheck) {
-                    raycasts++;
-                    visible = castRay(a, b, eyeA, eyeB);
-                    lastPos.put(a.getUUID(), eyeA);
-                    lastPos.put(b.getUUID(), eyeB);
-                } else {
-                    visible = false; // cached blocked, neither moved
-                }
-
-                // b crouching hides b from a; a crouching hides a from b.
-                handleResult(a, b, !bCrouchHidden && visible);
-                handleResult(b, a, !aCrouchHidden && visible);
+                handleResult(a, b, visible);
+                handleResult(b, a, visible);
             }
         }
 

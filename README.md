@@ -10,7 +10,7 @@ Because all calculations and packet interceptions happen entirely on the server,
 ## Key Features
 
 * **Zero Client Setup:** 100% server-side. Vanilla and modded clients both see the correct, culled nametags automatically.
-* **Engineered for Performance:** Raycasting can be heavy, so CullTag is built to protect your server's TPS. It utilizes **symmetric LOS** (calculating only one ray per pair of players instead of two) and intelligently skips raycasts for obstructed players who haven't moved.
+* **Engineered for Performance:** Raycasting can be heavy, so CullTag is built to protect your server's TPS. It utilizes **symmetric LOS** (calculating only one ray per pair of players instead of two) and only runs a sweep every few ticks — typical cost is well under a millisecond.
 * **Crouch to Hide:** Crouching players have their nametag hidden from everyone entirely, regardless of line of sight — great for staying unseen. Enabled by default and fully optional.
 * **Live Configuration:** Tweak maximum tracking distance, tick frequency, and crouch-hiding in `config/culltag.properties`.
 * **Hot-Swappable:** Toggle the entire system or reload config changes live without ever needing to restart your server.
@@ -33,3 +33,7 @@ Manage the mod entirely in-game (requires appropriate permissions):
 
 * **Environment:** Server-side ONLY (Drop it in your server's `mods` folder and you're done)
 * **Dependencies:** [Fabric API](https://modrinth.com/mod/fabric-api)
+
+## Known Incompatibilities
+
+* **[PassableFoliage](https://modrinth.com/mod/passable-foliage)** — mutates leaf collision shapes on both client and server, desynchronising LOS raycasts through foliage and producing erratic nametag visibility.
