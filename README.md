@@ -10,8 +10,8 @@ Because all calculations and packet interceptions happen entirely on the server,
 ## Key Features
 
 * **Zero Client Setup:** 100% server-side. Vanilla and modded clients both see the correct, culled nametags automatically.
-* **Engineered for Performance:** Raycasting can be heavy, so CullTag is built to protect your server's TPS. It utilizes **symmetric LOS** (calculating only one ray per pair of players instead of two) and only runs a sweep every few ticks — typical cost is well under a millisecond.
-* **Crouch to Hide:** Crouching players have their nametag hidden from everyone entirely, regardless of line of sight — great for staying unseen. Enabled by default and fully optional.
+* **Engineered for Performance:** Raycasting can be heavy, so CullTag is built to protect your server's TPS. It utilizes **symmetric LOS** (calculating only one ray per pair of players instead of two) and only runs a sweep every few ticks - typical cost is well under a millisecond.
+* **Crouch to Hide:** Crouching players have their nametag hidden from everyone entirely, regardless of line of sight - great for staying unseen. Enabled by default and fully optional.
 * **Live Configuration:** Tweak maximum tracking distance, tick frequency, and crouch-hiding in `config/culltag.properties`.
 * **Hot-Swappable:** Toggle the entire system or reload config changes live without ever needing to restart your server.
 * **Built-in Profiling:** Monitor exactly how the mod is operating under the hood with built-in performance metrics.
@@ -20,14 +20,14 @@ Because all calculations and packet interceptions happen entirely on the server,
 
 Every few ticks, the server quietly casts a ray between each pair of online players. If that ray intersects with a block, the server intercepts the vanilla network packets and hides the target's nametag from the viewer. The exact moment a player steps out of cover and Line of Sight (LOS) is restored, the server updates the packet and the nametag seamlessly reappears.
 
-When `crouch_hides_nametag` is enabled (the default), a crouching player's nametag is hidden from everyone outright — no line-of-sight check needed.
+When `crouch_hides_nametag` is enabled (the default), a crouching player's nametag is hidden from everyone outright - no line-of-sight check needed.
 
 ## Commands
 
 Manage the mod entirely in-game (requires appropriate permissions):
-* `/culltag enable` & `/culltag disable` — Toggle the culling system live. Your choice automatically persists to the config file.
-* `/culltag reload` — Hot-reload any changes made to `culltag.properties`.
-* `/culltag stats` — View real-time raycast performance metrics and active tracking data.
+* `/culltag enable` & `/culltag disable` - Toggle the culling system live. Your choice automatically persists to the config file.
+* `/culltag reload` - Hot-reload any changes made to `culltag.properties`.
+* `/culltag stats` - View real-time raycast performance metrics and active tracking data.
 
 ## Requirements
 
@@ -36,4 +36,4 @@ Manage the mod entirely in-game (requires appropriate permissions):
 
 ## Known Incompatibilities
 
-* **[PassableFoliage](https://modrinth.com/mod/passable-foliage)** — mutates leaf collision shapes on both client and server, desynchronising LOS raycasts through foliage and producing erratic nametag visibility.
+* **[PassableFoliage](https://modrinth.com/mod/passable-foliage)** - mutates leaf collision shapes on both client and server, desynchronising LOS raycasts through foliage and producing erratic nametag visibility.
